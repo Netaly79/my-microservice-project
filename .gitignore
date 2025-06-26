@@ -1,0 +1,22 @@
+# Локальні файли Terraform
+.terraform/
+.terraform.lock.hcl
+
+# Файли стану Terraform
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate.*
+
+# Файли з вихідними змінними або секретами (опційно)
+*.tfvars
+*.tfvars.json
+
+# План розгортання (може містити чутливу інформацію)
+plan.out
+
+# Логи (якщо створюються)
+*.log
+
+# IDE-файли (опційно)
+.vscode/
+.idea/
