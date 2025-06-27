@@ -5,6 +5,7 @@ This is a repository for a training project within the DevOps CI/CD course.
 
 Project structure: 
 
+```
 lesson-5/
 │
 ├── main.tf                  # Головний файл для підключення модулів
@@ -32,7 +33,7 @@ lesson-5/
 │
 └── README.md                # Документація проєкту
 
-
+```
 
 Command:
 
