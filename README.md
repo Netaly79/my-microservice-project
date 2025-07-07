@@ -54,6 +54,90 @@ vpc - створення приватних та публічних підмер
 
 ecr - репозиторій для контейнерів
 
+# Django App Deployment on AWS EKS
+
+## Має бути завантажено:
+
+- AWS account with sufficient permissions
+- AWS CLI configured (`aws configure`)
+- Docker installed and running
+- kubectl installed
+- Helm installed
+- Terraform installed
+
+## 1. Збірка та завантаження Docker Image to ECR
+
+1. **Аунтетіфікація Docker в ECR:**
+   ```sh
+   aws ecr get-login-password --region <your-region> | docker login --username AWS --password-stdin <your-account-id>.dkr.ecr.<your-region>.amazonaws.com
+   ```
+
+2. **Створення Docker image:**
+   ```sh
+   docker build -t django-app .
+   ```
+
+3. **Додавання тега до image:**
+   ```sh
+   docker tag django-app:latest <your-account-id>.dkr.ecr.<your-region>.amazonaws.com/lesson-5-ecr-nat:latest
+   ```
+
+4. **Завантаження image в ECR:**
+   ```sh
+   docker push <your-account-id>.dkr.ecr.<your-region>.amazonaws.com/lesson-5-ecr-nat:latest
+   ```
+
+
+## 2. Конфігурація kubectl
+
+1. **Оновлення kubeconfig в EKS кластері:**
+   ```sh
+   aws eks --region <your-region> update-kubeconfig --name <your-cluster-name>
+   ```
+
+2. **Перевірка доступу к кластеру:**
+   ```sh
+   kubectl get nodes
+   ```
+
+## 3. Deploy Django App за допомогою Helm
+
+1. **Перейти в Helm chart directory:**
+   ```sh
+   cd charts/django-app
+   ```
+
+2. **Обновити `values.yaml`, додати ECR image repository та tag.**
+
+3. **Зробити інстоляцію chart:**
+   ```sh
+   helm install nat .
+   ```
+
+4. **Отримати external URL:**
+   ```sh
+   kubectl get svc
+   ```
+   - Look for the `EXTERNAL-IP` of the `nat-django` service.
+
+5. **Відкрити Django app за допомогую броузера:**
+   ```
+   http://<external-elb-dns>
+   ```
+
+
+![alt text](image.png)
+
+## 5. Очищення ресурсів
+
+To remove all resources:
+```sh
+helm uninstall nat
+terraform destroy
+```
+
+
+
 
 
 
