@@ -1,0 +1,11 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('Run Job DSL') {
+      steps {
+        jobDsl targets: 'seed.groovy'
+      }
+    }
+  }
+}
