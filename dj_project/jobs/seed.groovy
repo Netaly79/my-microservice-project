@@ -11,7 +11,7 @@ pipelineJob("goit-django-docker") {
           branches("*/main")
         }
       }
-      scriptPath("Jenkinsfile")  // путь до Jenkinsfile в репо
+      scriptPath("dj_project/Jenkinsfile")  // путь до Jenkinsfile в репо
     }
   }
 }
