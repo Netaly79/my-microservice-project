@@ -1,7 +1,7 @@
 # IAM-роль для EC2-вузлів (Worker Nodes)
 resource "aws_iam_role" "nodes" {
   # Ім'я ролі для вузлів
-  name = "${var.cluster_name}-eks-nodes"
+  name = "${var.cluster_name}-v1-eks-nodes"
 
   # Політика, що дозволяє EC2 асумувати роль
   assume_role_policy = jsonencode({

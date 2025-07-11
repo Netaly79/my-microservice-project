@@ -1,7 +1,7 @@
  # IAM-роль для EKS-кластера
 resource "aws_iam_role" "eks" {
   # Ім'я IAM-ролі для кластера EKS
-  name = "${var.cluster_name}-eks-cluster"
+  name = "${var.cluster_name}-eks-v1-cluster"
 
   # Політика, яка дозволяє сервісу EKS «асумувати» цю IAM-роль
   assume_role_policy = jsonencode({

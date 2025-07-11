@@ -44,3 +44,26 @@ module "eks" {
   min_size        = 1                             # Мінімальна кількість нодів
 }
 
+data "aws_eks_cluster_auth" "eks" {
+  name = var.cluster_name
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks.eks_cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.eks_cluster_ca_data)
+    token                  = data.aws_eks_cluster_auth.eks.token
+  }
+}
+
+module "jenkins" {
+  source       = "./modules/jenkins"
+  cluster_name = module.eks.eks_cluster_name
+  kubeconfig   = "~/.kube/config"
+}
+
+variable "cluster_name" {
+  description = "The name of the EKS cluster"
+  type        = string
+  default     = "eks-cluster-demo-nat"
+}
