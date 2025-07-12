@@ -39,10 +39,9 @@ controller:
     - configuration-as-code:latest
     - credentials-binding:latest
     - github:latest
-    - job-dsl:latest
+    - docker-plugin:latest
     - docker-workflow:latest
     - job-dsl:latest
-    - pipeline-model-definition:latest
 
   serviceAccount:
     name: jenkins-sa
@@ -80,8 +79,7 @@ controller:
                       username: ${GITHUB_USERNAME}
                       password: ${GITHUB_PASSWORD}
                       description: GitHub PAT
-      seed-job: |                    # <-- simple example seed job
-        jobs:
+      seed-job: |                    
           - script: >
               job('seed-job') {
                 description('Job to generate pipeline for Django project')

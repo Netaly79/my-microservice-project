@@ -1,0 +1,12 @@
+controller:
+  env:
+    - name: GITHUB_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: github-token
+          key: username
+    - name: GITHUB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: github-token
+          key: password
