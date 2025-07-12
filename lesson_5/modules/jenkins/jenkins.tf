@@ -1,16 +1,3 @@
-resource "helm_release" "jenkins" {
-  name             = "jenkins"
-  namespace        = "jenkins"
-  repository       = "https://charts.jenkins.io"
-  chart            = "jenkins"
-  version          = "5.0.16"
-  create_namespace = true
-
-  values = [
-    file("${path.module}/values.yaml")
-  ]
-}
-
 resource "kubernetes_storage_class_v1" "ebs_sc" {
   metadata {
     name = "ebs-sc"
@@ -29,6 +16,12 @@ resource "kubernetes_storage_class_v1" "ebs_sc" {
   }
 }
 
+resource "kubernetes_namespace" "jenkins" {
+  metadata {
+    name = "jenkins"
+  }
+}
+
 resource "kubernetes_service_account" "jenkins_sa" {
   metadata {
     name      = "jenkins-sa"
@@ -37,9 +30,7 @@ resource "kubernetes_service_account" "jenkins_sa" {
       "eks.amazonaws.com/role-arn" = aws_iam_role.jenkins_kaniko_role.arn
     }
   }
-  depends_on = [
-    helm_release.jenkins
-  ]
+  depends_on = [kubernetes_namespace.jenkins]
 }
 
 resource "aws_iam_role" "jenkins_kaniko_role" {
@@ -86,4 +77,27 @@ resource "aws_iam_role_policy" "jenkins_ecr_policy" {
       }
     ]
   })
+}
+
+# ----------  Helm release  ----------
+locals {
+  jenkins_values = templatefile("${path.module}/values.yaml.tmpl", {
+    github_user     = var.github_user
+    github_pat      = var.github_pat        # <<< sensitive flows in here
+    github_repo_url = var.github_repo_url
+  })
+}
+
+resource "helm_release" "jenkins" {
+  name             = "jenkins"
+  namespace        = "jenkins"
+  repository       = "https://charts.jenkins.io"
+  chart            = "jenkins"
+  version          = "5.8.27"
+  create_namespace = false
+
+  values  = [local.jenkins_values]
+
+  # give Jenkins up to 10 min to become Ready (default is only 5 min)
+  timeout = 600
 }

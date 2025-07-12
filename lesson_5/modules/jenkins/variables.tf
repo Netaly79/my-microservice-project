@@ -17,3 +17,14 @@ variable "oidc_provider_url" {
   description = "The URL of the OIDC provider for EKS"
   type        = string
 }
+
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
+  type        = string
+}
+
+variable "namespace" {
+  description = "Kubernetes namespace for deploying Jenkins"
+  type        = string
+  default     = "jenkins"
+}

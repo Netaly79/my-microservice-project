@@ -3,11 +3,21 @@ controller:
     username: admin
     password: admin123
 
+  env:                                         # <-- Add this section here
+    - name: GITHUB_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: github-token
+          key: username
+    - name: GITHUB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: github-token
+          key: password
+
   serviceType: LoadBalancer
   servicePort: 80
-  service:
-    port: 80
-    targetPort: 8080
+  targetPort: 8080
 
   resources:
     limits:
@@ -29,3 +39,79 @@ controller:
     - configuration-as-code:latest
     - credentials-binding:latest
     - github:latest
+    - job-dsl:latest
+    - docker-workflow:latest
+    - job-dsl:latest
+    - pipeline-model-definition:latest
+
+  serviceAccount:
+    name: jenkins-sa
+    create: false
+  
+  # initScripts:
+  #   create-seed: |
+  #     import jenkins.model.*
+  #     import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition
+  #     import hudson.plugins.git.*
+  #     import org.jenkinsci.plugins.workflow.job.WorkflowJob
+
+  #     def seedJob = Jenkins.instance.createProject(WorkflowJob, "seed-job")
+
+  #     def scm = new GitSCM("https://github.com/Netaly79/my-microservice-project.git")
+  #     scm.getUserRemoteConfigs()[0].credentialsId = "github-token"
+  #     scm.branches = [new BranchSpec("*/main")]
+
+  #     def definition = new CpsScmFlowDefinition(scm, "dj_project/jobs/seed.groovy")
+  #     seedJob.definition = definition
+  #     seedJob.save()
+      
+  jcasC:
+    enabled: true
+    defaultConfig: true
+    configScripts:
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      scope: GLOBAL
+                      id: github-token
+                      username: ${GITHUB_USERNAME}
+                      password: ${GITHUB_PASSWORD}
+                      description: GitHub PAT
+      seed-job: |                    # <-- simple example seed job
+        jobs:
+          - script: >
+              job('seed-job') {
+                description('Job to generate pipeline for Django project')
+                scm {
+                  git {
+                    remote {
+                      url('https://github.com/Netaly79/my-microservice-project.git')
+                      credentials('github-token')
+                    }
+                    branches('*/jenkins')
+                  }
+                }
+                steps {
+                  dsl {
+                    text: |
+                      pipelineJob("goit-django-docker") {
+                        definition {
+                          cpsScm {
+                            scm {
+                              git {
+                                remote {
+                                  url('https://github.com/Netaly79/my-microservice-project.git')
+                                  credentials("github-token")
+                                }
+                                branches("*/jenkins")
+                              }
+                            }
+                          }
+                        }
+                      }
+                  }
+                }
+              }

@@ -20,3 +20,5 @@ plan.out
 # IDE-файли (опційно)
 .vscode/
 .idea/
+
+github-token-secret.yaml
