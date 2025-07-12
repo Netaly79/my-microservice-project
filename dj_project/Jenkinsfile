@@ -14,10 +14,19 @@ spec:
       image: amazon/aws-cli
       command: ["sleep"]
       args: ["99d"]
+      volumeMounts:
+        - mountPath: /kaniko/.docker
+          name: kaniko-docker-config
     - name: kaniko
       image: gcr.io/kaniko-project/executor:v1.16.0-debug
       command: ["sleep"]
       args: ["99d"]
+      volumeMounts:
+        - mountPath: /kaniko/.docker
+          name: kaniko-docker-config
+  volumes:
+    - name: kaniko-docker-config
+      emptyDir: {}
 """
     }
   }
@@ -26,6 +35,7 @@ spec:
     ECR_REGISTRY = "804054839611.dkr.ecr.eu-central-1.amazonaws.com"
     IMAGE_NAME   = "lesson-5-ecr-nat"
     IMAGE_TAG    = "latest"
+    AWS_DEFAULT_REGION = "eu-central-1"
   }
 
   stages {
@@ -34,7 +44,11 @@ spec:
         container('aws') {
           withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
             sh '''
-              aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+              aws ecr get-login-password --region $AWS_DEFAULT_REGION > /kaniko/.docker/config.json.tmp
+              mkdir -p /kaniko/.docker
+              aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+              # копируем docker config для kaniko
+              cp ~/.docker/config.json /kaniko/.docker/config.json
             '''
           }
         }
@@ -50,7 +64,6 @@ spec:
               --dockerfile `pwd`/dj_project/Dockerfile \
               --destination=$ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
               --cache=true \
-              --insecure \
               --skip-tls-verify
           '''
         }
