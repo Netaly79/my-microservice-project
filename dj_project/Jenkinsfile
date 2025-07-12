@@ -10,13 +10,14 @@ metadata:
 spec:
   serviceAccountName: jenkins-sa
   containers:
+    - name: aws
+      image: amazon/aws-cli
+      command: ["sleep"]
+      args: ["99d"]
     - name: kaniko
       image: gcr.io/kaniko-project/executor:v1.16.0-debug
-      imagePullPolicy: Always
-      command:
-        - sleep
-      args:
-        - 99d
+      command: ["sleep"]
+      args: ["99d"]
 """
     }
   }
@@ -28,16 +29,28 @@ spec:
   }
 
   stages {
+    stage('Login to AWS ECR') {
+      steps {
+        container('aws') {
+          withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
+            sh '''
+              aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+            '''
+          }
+        }
+      }
+    }
+
     stage('Build & Push Docker Image') {
       steps {
         container('kaniko') {
           sh '''
-            /kaniko/executor \\
-              --context `pwd`/dj_project \\
-              --dockerfile `pwd`/dj_project/Dockerfile \\
-              --destination=$ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG \\
-              --cache=true \\
-              --insecure \\
+            /kaniko/executor \
+              --context `pwd`/dj_project \
+              --dockerfile `pwd`/dj_project/Dockerfile \
+              --destination=$ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
+              --cache=true \
+              --insecure \
               --skip-tls-verify
           '''
         }

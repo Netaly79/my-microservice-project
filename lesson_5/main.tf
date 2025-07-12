@@ -60,6 +60,8 @@ module "jenkins" {
   source       = "./modules/jenkins"
   cluster_name = module.eks.eks_cluster_name
   kubeconfig   = "~/.kube/config"
+  oidc_provider_arn = "arn:aws:iam::<account_id>:oidc-provider/oidc.eks.<region>.amazonaws.com/id/<eks_oidc_id>"
+  oidc_provider_url = "https://oidc.eks.<region>.amazonaws.com/id/<eks_oidc_id>"
 }
 
 variable "cluster_name" {
@@ -67,3 +69,10 @@ variable "cluster_name" {
   type        = string
   default     = "eks-cluster-demo-nat"
 }
+
+provider "kubernetes" {
+  host                   = module.eks.eks_cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.eks_cluster_ca_data)
+  token                  = data.aws_eks_cluster_auth.eks.token
+}
+
