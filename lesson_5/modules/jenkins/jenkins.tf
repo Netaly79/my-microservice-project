@@ -1,6 +1,6 @@
 resource "kubernetes_storage_class_v1" "ebs_sc" {
   metadata {
-    name = "ebs-sc"
+    name        = "ebs-sc"
     annotations = {
       "storageclass.kubernetes.io/is-default-class" = "true"
     }
@@ -8,8 +8,8 @@ resource "kubernetes_storage_class_v1" "ebs_sc" {
 
   storage_provisioner = "ebs.csi.aws.com"
 
-  reclaim_policy       = "Delete"
-  volume_binding_mode  = "WaitForFirstConsumer"
+  reclaim_policy      = "Delete"
+  volume_binding_mode = "WaitForFirstConsumer"
 
   parameters = {
     type = "gp3"
@@ -24,8 +24,8 @@ resource "kubernetes_namespace" "jenkins" {
 
 resource "kubernetes_service_account" "jenkins_sa" {
   metadata {
-    name      = "jenkins-sa"
-    namespace = "jenkins"
+    name        = "jenkins-sa"
+    namespace   = "jenkins"
     annotations = {
       "eks.amazonaws.com/role-arn" = aws_iam_role.jenkins_kaniko_role.arn
     }
@@ -37,14 +37,14 @@ resource "aws_iam_role" "jenkins_kaniko_role" {
   name = "${var.cluster_name}-jenkins-kaniko-role"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
+    Version   = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow",
+        Effect    = "Allow",
         Principal = {
           Federated = var.oidc_provider_arn
         },
-        Action = "sts:AssumeRoleWithWebIdentity",
+        Action    = "sts:AssumeRoleWithWebIdentity",
         Condition = {
           StringEquals = {
             "${replace(var.oidc_provider_url, "https://", "")}:sub" = "system:serviceaccount:jenkins:jenkins-sa"
@@ -60,7 +60,7 @@ resource "aws_iam_role_policy" "jenkins_ecr_policy" {
   role = aws_iam_role.jenkins_kaniko_role.id
 
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version   = "2012-10-17",
     Statement = [
       {
         Effect = "Allow",
@@ -79,6 +79,14 @@ resource "aws_iam_role_policy" "jenkins_ecr_policy" {
   })
 }
 
+# ----------  Helm release  ----------
+locals {
+  jenkins_values = templatefile("${path.module}/values.yaml.tmpl", {
+    github_user     = var.github_user
+    github_pat      = var.github_pat        # <<< sensitive flows in here
+    github_repo_url = var.github_repo_url
+  })
+}
 
 resource "helm_release" "jenkins" {
   name             = "jenkins"
@@ -87,6 +95,8 @@ resource "helm_release" "jenkins" {
   chart            = "jenkins"
   version          = "5.8.27"
   create_namespace = false
+
+  values  = [local.jenkins_values]
 
   # give Jenkins up to 10 min to become Ready (default is only 5 min)
   timeout = 600

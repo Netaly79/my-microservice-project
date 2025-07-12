@@ -1,36 +1,18 @@
+# ─────────────────────────────────────────────────────────────
+# modules/jenkins/values.yaml.tmpl
+# ─────────────────────────────────────────────────────────────
 controller:
-  admin:
+  admin:                 # keep a simple admin login; change the pwd anytime
     username: admin
     password: admin123
-
-  env:
-    - name: GITHUB_USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: github-token
-          key: username
-    - name: GITHUB_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: github-token
-          key: password
 
   serviceType: LoadBalancer
   servicePort: 80
   targetPort: 8080
 
   resources:
-    limits:
-      cpu: "500m"
-      memory: "1Gi"
-    requests:
-      cpu: "250m"
-      memory: "512Mi"
-
-  persistence:
-    enabled: true
-    storageClass: gp2
-    size: 10Gi
+    limits:   {cpu: "500m", memory: "1Gi"}
+    requests: {cpu: "250m", memory: "512Mi"}
 
   installPlugins:
     - kubernetes:latest
@@ -44,31 +26,16 @@ controller:
     - job-dsl:latest
 
   serviceAccount:
-    name: jenkins-sa
-    create: false
-  
-  # initScripts:
-  #   create-seed: |
-  #     import jenkins.model.*
-  #     import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition
-  #     import hudson.plugins.git.*
-  #     import org.jenkinsci.plugins.workflow.job.WorkflowJob
+    name: jenkins-sa                 # SA is created elsewhere
 
-  #     def seedJob = Jenkins.instance.createProject(WorkflowJob, "seed-job")
-
-  #     def scm = new GitSCM("https://github.com/Netaly79/my-microservice-project.git")
-  #     scm.getUserRemoteConfigs()[0].credentialsId = "github-token"
-  #     scm.branches = [new BranchSpec("*/main")]
-
-  #     def definition = new CpsScmFlowDefinition(scm, "dj_project/jobs/seed.groovy")
-  #     seedJob.definition = definition
-  #     seedJob.save()
-      
-  jcasC:
+  # ──────────────────────────────────────────────
+  # Jenkins Configuration-as-Code (JCasC) section
+  # ──────────────────────────────────────────────
+  jcasc:
     enabled: true
     defaultConfig: true
     configScripts:
-      credentials: |
+      credentials: |                 # <-- создаём github-token
         credentials:
           system:
             domainCredentials:
@@ -76,40 +43,58 @@ controller:
                   - usernamePassword:
                       scope: GLOBAL
                       id: github-token
-                      username: ${GITHUB_USERNAME}
-                      password: ${GITHUB_PASSWORD}
-                      description: GitHub PAT
-      seed-job: |                    
-          - script: >
-              job('seed-job') {
-                description('Job to generate pipeline for Django project')
-                scm {
-                  git {
-                    remote {
-                      url('https://github.com/Netaly79/my-microservice-project.git')
-                      credentials('github-token')
-                    }
-                    branches('*/jenkins')
+                      username: {{ .Values.github.user | quote }}
+                      password: {{ .Values.github.pat  | quote }}
+                      description: GitHub PAT injected by Terraform
+
+      seed-job: |                   # <-- исправленный seed job
+        jobs:
+          script: >
+            job('seed-job') {
+              description('Job to generate pipeline for Django project')
+              scm {
+                git {
+                  remote {
+                    url('{{ .Values.github.repoUrl }}')
+                    credentials('github-token')
                   }
+                  branches('*/jenkins')
                 }
-                steps {
-                  dsl {
-                    text: |
-                      pipelineJob("goit-django-docker") {
-                        definition {
-                          cpsScm {
-                            scm {
-                              git {
-                                remote {
-                                  url('https://github.com/Netaly79/my-microservice-project.git')
-                                  credentials("github-token")
-                                }
-                                branches("*/jenkins")
+              }
+              steps {
+                dsl {
+                  text: |
+                    pipelineJob("goit-django-docker") {
+                      definition {
+                        cpsScm {
+                          scm {
+                            git {
+                              remote {
+                                url('{{ .Values.github.repoUrl }}')
+                                credentials("github-token")
                               }
+                              branches("*/jenkins")
                             }
                           }
                         }
                       }
-                  }
+                    }
                 }
               }
+            }
+
+# ─────────────────────────────────────────────────────────────
+# EBS persistence
+# ─────────────────────────────────────────────────────────────
+persistence:
+  enabled: true
+  storageClass: ebs-sc
+  size: 10Gi
+
+# ─────────────────────────────────────────────────────────────
+#  Variables that Terraform will fill in
+# ─────────────────────────────────────────────────────────────
+github:
+  user:    ${github_user}
+  pat:     ${github_pat}
+  repoUrl: ${github_repo_url}
