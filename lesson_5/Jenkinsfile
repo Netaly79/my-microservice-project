@@ -71,7 +71,8 @@ spec:
 
               git add values.yaml
               git commit -m "Update image tag to $IMAGE_TAG"
-              git push https://$USERNAME:$PASSWORD@github.com/Netaly79/my-microservice-project.git jenkins
+              git remote set-url origin https://$USERNAME:$PASSWORD@github.com/Netaly79/my-microservice-project.git
+              git push origin jenkins
             '''
           }
         }
