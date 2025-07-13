@@ -10,23 +10,18 @@ metadata:
 spec:
   serviceAccountName: jenkins-sa
   containers:
-    - name: aws
-      image: amazon/aws-cli
-      command: ["sleep"]
-      args: ["99d"]
-      volumeMounts:
-        - mountPath: /kaniko/.docker
-          name: kaniko-docker-config
     - name: kaniko
       image: gcr.io/kaniko-project/executor:v1.16.0-debug
-      command: ["sleep"]
-      args: ["99d"]
-      volumeMounts:
-        - mountPath: /kaniko/.docker
-          name: kaniko-docker-config
-  volumes:
-    - name: kaniko-docker-config
-      emptyDir: {}
+      imagePullPolicy: Always
+      command:
+        - sleep
+      args:
+        - 99d
+     # Lightweight container that has git + coreutils
+    - name: git
+      image: alpine/git
+      command: ["cat"]       # keep it idle so Jenkins can exec into it
+      tty: true
 """
     }
   }
@@ -34,36 +29,51 @@ spec:
   environment {
     ECR_REGISTRY = "804054839611.dkr.ecr.eu-central-1.amazonaws.com"
     IMAGE_NAME   = "lesson-5-ecr-nat"
-    IMAGE_TAG    = "latest"
-    AWS_DEFAULT_REGION = "eu-central-1"
+    IMAGE_TAG    = "v1.0.${BUILD_NUMBER}"
+
+    COMMIT_EMAIL = "jenkins@localhost"
+    COMMIT_NAME  = "jenkins"
   }
 
   stages {
-    stage('Login to AWS ECR') {
-      steps {
-        container('aws') {
-          withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
-            sh '''
-              mkdir -p /kaniko/.docker
-              TOKEN=$(aws ecr get-login-password --region $AWS_DEFAULT_REGION)
-              AUTH=$(echo -n AWS:$TOKEN | base64 | tr -d '\\n')
-              echo "{\"auths\":{\"$ECR_REGISTRY\":{\"auth\":\"$AUTH\"}}}" > /kaniko/.docker/config.json
-            '''
-          }
-        }
-      }
-    }
     stage('Build & Push Docker Image') {
       steps {
         container('kaniko') {
           sh '''
-            /kaniko/executor \
-              --context `pwd`/dj_project \
-              --dockerfile `pwd`/dj_project/Dockerfile \
-              --destination=$ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
-              --cache=true \
+            cd django
+            /kaniko/executor \\
+              --context `pwd` \\
+              --dockerfile `pwd`/Dockerfile \\
+              --destination=$ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG \\
+              --cache=true \\
+              --insecure \\
               --skip-tls-verify
           '''
+        }
+      }
+    }
+
+    stage('Update Chart Tag in Git') {
+      steps {
+        container('git') {
+          withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+            sh '''
+              echo $USERNAME
+              git clone https://$USERNAME:$PASSWORD@github.com/$USERNAME/devops.git
+              cd devops
+              git checkout lesson-10
+              cd charts/django-app
+
+              sed -i "s/tag: .*/tag: $IMAGE_TAG/" values.yaml
+
+              git config user.email "$COMMIT_EMAIL"
+              git config user.name "$COMMIT_NAME"
+
+              git add values.yaml
+              git commit -m "Update image tag to $IMAGE_TAG"
+              git push origin lesson-10
+            '''
+          }
         }
       }
     }
