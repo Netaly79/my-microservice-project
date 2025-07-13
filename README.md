@@ -131,6 +131,8 @@ ecr - репозиторій для контейнерів
 6. **Jenkins**
 ![alt text](image-1.png)
 
+![alt text](image-2.png)
+
 ## 5. Очищення ресурсів
 
 To remove all resources:
