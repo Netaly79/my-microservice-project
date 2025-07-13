@@ -4,7 +4,7 @@ applications:
     project: default    #  назва Argo CD проєкту
     source:             # джерело коду застосунку
       # repoURL: https://github.com/YOUR_USERNAME/example-repo.git
-      repoURL: ${github_repo_url} # посилання на Git-репозиторій, де зберігаються Helm chart або Kubernetes маніфести
+      repoURL: https://github.com/Netaly79/my-microservice-project.git # посилання на Git-репозиторій, де зберігаються Helm chart або Kubernetes маніфести
       path: charts/django-app     # шлях усередині репозиторію до потрібного чарта або YAML-файлів
       targetRevision: jenkins    # гілка або тег Git, з якого брати застосунок (наприклад, main)
       helm:
@@ -21,7 +21,7 @@ applications:
 repositories:
   - name: django-app         # ім’я репозиторію для внутрішнього використання
     # url: https://github.com/YOUR_USERNAME/example-repo.git
-    url: ${github_repo_url}   # повна URL-адреса Git-репозиторію
+    url: https://github.com/Netaly79/my-microservice-project.git   # повна URL-адреса Git-репозиторію
     username: ${github_user}  # облікові дані для доступу до приватного репозиторію
     password: ${github_pat}
 
