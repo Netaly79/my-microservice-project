@@ -58,8 +58,8 @@ spec:
         container('git') {
           withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
             sh '''
-              echo $USERNAME
-              git clone https://github.com/Netaly79/my-microservice-project.git
+
+              git clone https://$USERNAME:$PASSWORD@github.com/Netaly79/my-microservice-project.git
               cd my-microservice-project
               git checkout jenkins
               cd lesson_5/charts/django-app
@@ -71,7 +71,7 @@ spec:
 
               git add values.yaml
               git commit -m "Update image tag to $IMAGE_TAG"
-              git push origin jenkins
+              git push https://$USERNAME:$PASSWORD@github.com/Netaly79/my-microservice-project.git jenkins
             '''
           }
         }
