@@ -44,11 +44,9 @@ spec:
         container('aws') {
           withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
             sh '''
-              aws ecr get-login-password --region $AWS_DEFAULT_REGION > /kaniko/.docker/config.json.tmp
               mkdir -p /kaniko/.docker
-              aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-              # копируем docker config для kaniko
-              cp ~/.docker/config.json /kaniko/.docker/config.json
+              TOKEN=$(aws ecr get-login-password --region $AWS_DEFAULT_REGION)
+              echo "{\\"auths\\": {\\"$ECR_REGISTRY\\": {\\"auth\\": \\"$(echo -n AWS:$TOKEN | base64)\\"}}}" > /kaniko/.docker/config.json
             '''
           }
         }
