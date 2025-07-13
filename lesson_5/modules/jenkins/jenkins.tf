@@ -81,7 +81,7 @@ resource "aws_iam_role_policy" "jenkins_ecr_policy" {
 
 # ----------  Helm release  ----------
 locals {
-  jenkins_values = templatefile("${path.module}/values.yaml.tmpl", {
+  jenkins_values = templatefile("${path.module}/values.yaml", {
     github_user     = var.github_user
     github_pat      = var.github_pat        # <<< sensitive flows in here
     github_repo_url = var.github_repo_url
