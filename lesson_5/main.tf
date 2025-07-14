@@ -57,13 +57,35 @@ provider "helm" {
 }
 
 module "jenkins" {
-  source       = "./modules/jenkins"
-  cluster_name = module.eks.eks_cluster_name
-  kubeconfig   = "~/.kube/config"
+  source            = "./modules/jenkins"
+  cluster_name      = module.eks.eks_cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  github_pat        = var.github_pat
+  github_user       = var.github_user
+  github_repo_url   = var.github_repo_url
+  depends_on        = [module.eks]
+  providers         = {
+    helm       = helm
+    kubernetes = kubernetes
+  }
 }
 
 variable "cluster_name" {
   description = "The name of the EKS cluster"
   type        = string
   default     = "eks-cluster-demo-nat"
+}
+
+provider "kubernetes" {
+  host                   = module.eks.eks_cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.eks_cluster_ca_data)
+  token                  = data.aws_eks_cluster_auth.eks.token
+}
+
+module "argo_cd" {
+  source        = "./modules/argo_cd"
+  namespace     = "argocd"
+  chart_version = "5.46.4"
+  depends_on    = [module.eks]
 }

@@ -129,7 +129,12 @@ ecr - репозиторій для контейнерів
 ![alt text](image.png)
 
 6. **Jenkins**
-![alt text](image-1.png)
+![alt text](image-3.png)
+
+7. **Argo_cd**
+![alt text](image-2.png)
+
+![alt text](image-4.png)
 
 ## 5. Очищення ресурсів
 

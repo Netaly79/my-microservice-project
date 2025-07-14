@@ -9,6 +9,11 @@ controller:
     port: 80
     targetPort: 8080
 
+  serviceAccount:
+     name: jenkins-sa
+     create: false
+
+
   resources:
     limits:
       cpu: "500m"
@@ -17,9 +22,9 @@ controller:
       cpu: "250m"
       memory: "512Mi"
 
-  persistence:
+  persistentVolume:
     enabled: true
-    storageClass: gp2
+    storageClass: "ebs-sc"
     size: 10Gi
 
   installPlugins:
@@ -29,3 +34,56 @@ controller:
     - configuration-as-code:latest
     - credentials-binding:latest
     - github:latest
+    - docker-plugin:latest
+    - docker-workflow:latest
+    - job-dsl:latest
+
+  JCasC:
+    configScripts:
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      scope: GLOBAL
+                      id: github-token
+                      username: ${github_user}
+                      password: ${github_pat}
+                      description: GitHub PAT
+      seed-job: |
+        jobs:
+          - script: >
+              job('seed-job') {
+                description('Job to generate pipeline for Django project')
+                scm {
+                  git {
+                    remote {
+                      url('https://github.com/Netaly79/my-microservice-project.git')
+                      credentials('github-token')
+                    }
+                    branches('*/jenkins')
+                  }
+                }
+                steps {
+                  dsl {
+                    text('''
+                      pipelineJob("goit-django-docker") {
+                        definition {
+                          cpsScm {
+                            scm {
+                              git {
+                                remote {
+                                  url("https://github.com/Netaly79/my-microservice-project.git")
+                                  credentials("github-token")
+                                }
+                                branches("*/jenkins")
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ''')
+                  }
+                }
+              }
