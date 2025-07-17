@@ -256,16 +256,37 @@ Parameter groups
 
 ```
 
-## 9. Очищення ресурсів
+## 10. Prometheus & Grafana
+
+![alt text](image-12.png)
+
+![alt text](image-13.png)
+
+
+## Встановлення:
+
+```
+kubectl create namespace monitoring
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install prometheus prometheus-community/prometheus --namespace monitoring
+
+helm repo add grafana <https://grafana.github.io/helm-charts>
+helm repo update
+
+
+helm install grafana grafana/grafana --namespace monitoring --set adminPassword=admin123
+kubectl port-forward -n monitoring svc/grafana 3000:80
+
+```
+
+Логін: admin, пароль: admin123
+
+
+## 11. Очищення ресурсів
 
 To remove all resources:
 ```sh
 helm uninstall nat
 terraform destroy
 ```
-
-
-
-
-
-
